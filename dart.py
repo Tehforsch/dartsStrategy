@@ -19,8 +19,7 @@ totalRadius = max(regions)
 regions = [x / totalRadius for x in regions]
 
 RESOLUTION = 1000
-SAVE = True
-
+ALLOWSAVING = True
 
 def score(x, y):
     r = np.sqrt(x**2 + y**2)
@@ -44,56 +43,61 @@ def score(x, y):
     assert phiIndex >= 0
     return order[phiIndex] * multiplier
 
-
 def getLinGrid():
     xs = np.linspace(-1, 1, RESOLUTION)
     return np.meshgrid(xs, xs)
-
 
 def getDartBoard():
     xv, yv = getLinGrid()
     s = np.vectorize(score)
     return s(xv, yv)
 
-
 def getScoreGrid(xSpread, ySpread, dartBoard):
-    gauss = multivariate_normal(mean=(0, 0), cov=np.array([[xSpread ** 2.0, 0],
-                                                           [0, ySpread ** 2.0]]))
+    gauss = multivariate_normal(mean=(0, 0), cov=np.array([[xSpread, 0],
+                                                           [0, ySpread]]))
     xx, yy = getLinGrid()
     xxyy = np.c_[xx.ravel(), yy.ravel()]
     gaussianGrid = gauss.pdf(xxyy).reshape((RESOLUTION, RESOLUTION))
-    # gaussianGrid = np.zeros((RESOLUTION, RESOLUTION))
-    # gaussianGrid[RESOLUTION/2,RESOLUTION/2] = 1
     return convolve(gaussianGrid, dartBoard)
 
-
-def getAvPoints(scoreGrid):
-    return np.amax(scoreGrid)
-
+def getBestPosition(scoreGrid):
+    index1D = np.argmax(scoreGrid)
+    index2D = np.unravel_index(index1D, scoreGrid.shape)
+    # Convoluted array is twice the size of the dartboard array / gaussian array - in the convoluted array, the dartboard starts at (RES/2, RES/2)
+    return (index2D[1] - RESOLUTION / 2, index2D[0] - RESOLUTION / 2)
 
 def plotHeatmap(data, filename=None):
     plt.imshow(data, cmap='hot', interpolation='nearest')
-    if filename is None or not SAVE:
+    plotOrSave(filename)
+
+def plotPosition(dartboard, positions, filename=None):
+    plt.imshow(dartboard, cmap='hot', interpolation='nearest')
+    sc = plt.scatter(positions[:,0], positions[:,1], c=positions[:,2], cmap=plt.cm.winter)
+    plt.plot(positions[:,0], positions[:,1], 'b-')
+    plt.colorbar(sc)
+    plotOrSave(filename)
+
+def plotOrSave(filename):
+    if filename is None and ALLOWSAVING:
         plt.show()
     else:
         plt.savefig(filename, dpi=300)
 
-
-def movie():
-    for x in range(1, 300):
-        spread = 0.00001*x
-        gauss = getScoreGrid(spread, spread, dartBoard)
-        plotHeatmap(gauss, "movie/{:04d}.png".format(x))
-
+def getScaledSigmas(sigmas):
+    return [sigma / totalRadius for sigma in sigmas]
 
 dartBoard = getDartBoard()
 
-for sigma in [0.1, 5.0, 10.0, 15.0, 20.0, 30.0, 60.0, 120.0]:
-    sigmaScaled = sigma / totalRadius
+# # Create plot which shows optimal position as precision changes
+sigmas = np.logspace(-4, 1, num=50)
+scaledSigmas = getScaledSigmas(sigmas)
+positions = np.array([list(getBestPosition(getScoreGrid(sigma, sigma, dartBoard))) + [scaledSigma] for (sigma, scaledSigma) in zip(sigmas, scaledSigmas)])
+plotPosition(dartBoard, positions)
 
-    scoreGrid = getScoreGrid(sigmaScaled, sigmaScaled, dartBoard)
+sigmas = [0.001, 0.1, 5.0, 10.0, 15.0, 20.0, 30.0, 60.0, 120.0]
+scaledSigmas = getScaledSigmas(sigmas)
 
-    avgScore = getAvPoints(scoreGrid)
-    print("Average score at sigma = {:3.0f} mm: {:.0f}".format(sigma, avgScore))
-
+# Show boards for different precisions
+for (sigma, scaledSigma) in zip(sigmas, scaledSigmas):
+    scoreGrid = getScoreGrid(scaledSigma, scaledSigma, dartBoard)
     plotHeatmap(scoreGrid, "board_{:03.0f}.png".format(sigma))
