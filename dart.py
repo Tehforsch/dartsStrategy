@@ -1,6 +1,7 @@
 import numpy as np
 import bisect
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 from scipy.stats import multivariate_normal
 from scipy.signal import convolve
 
@@ -67,8 +68,40 @@ def getBestPosition(scoreGrid):
     return (index2D[1] - RESOLUTION / 2, index2D[0] - RESOLUTION / 2)
 
 def plotHeatmap(data, filename=None):
-    plt.imshow(data, cmap='hot', interpolation='nearest')
+    plt.clf()
+    plt.imshow(data, cmap='inferno', interpolation='nearest')
+
+    BOARD_COLOR = '#222222'
+
+    ax = plt.gca()
+    for radius in regions:
+        circ = Circle((RESOLUTION, RESOLUTION),
+                      radius * RESOLUTION / 2,
+                      fill=False,
+                      color=BOARD_COLOR,
+                      linewidth=0.5)
+        ax.add_patch(circ)
+
+    for k in range(0, 20):
+        phi = 2.0 * np.pi / 20 * k + np.pi / 20
+        x1 = RESOLUTION + regions[2] * RESOLUTION / 2 * np.cos(phi)
+        y1 = RESOLUTION + regions[2] * RESOLUTION / 2 * np.sin(phi)
+        x2 = RESOLUTION + regions[-1] * RESOLUTION / 2 * np.cos(phi)
+        y2 = RESOLUTION + regions[-1] * RESOLUTION / 2 * np.sin(phi)
+        plt.plot([x1, x2], [y1, y2], '-', color=BOARD_COLOR, linewidth=0.5)
+
+    linear_index = np.argmax(data)
+    (y, x) = np.unravel_index(linear_index, data.shape)
+
+    circ = Circle((x, y),
+                  15.0,
+                  fill=True,
+                  color='#ff0000',
+                  linewidth=0)
+    ax.add_patch(circ)
+
     plotOrSave(filename)
+
 
 def plotPosition(dartboard, positions, filename=None):
     plt.imshow(dartboard, cmap='hot', interpolation='nearest')
@@ -81,14 +114,14 @@ def plotOrSave(filename):
     if filename is None and ALLOWSAVING:
         plt.show()
     else:
-        plt.savefig(filename, dpi=300)
+        plt.savefig(filename, dpi=300, bbox_inches='tight', pad_inches=0)
 
 def getScaledSigmas(sigmas):
     return [sigma / totalRadius for sigma in sigmas]
 
 dartBoard = getDartBoard()
 
-# # Create plot which shows optimal position as precision changes
+# Create plot which shows optimal position as precision changes
 for xyRatio in [1, 2, 4]:
     sigmas = np.logspace(-4, 1, num=50)
     scaledSigmas = getScaledSigmas(sigmas)
