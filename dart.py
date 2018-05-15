@@ -89,10 +89,12 @@ def getScaledSigmas(sigmas):
 dartBoard = getDartBoard()
 
 # # Create plot which shows optimal position as precision changes
-sigmas = np.logspace(-4, 1, num=50)
-scaledSigmas = getScaledSigmas(sigmas)
-positions = np.array([list(getBestPosition(getScoreGrid(sigma, sigma, dartBoard))) + [scaledSigma] for (sigma, scaledSigma) in zip(sigmas, scaledSigmas)])
-plotPosition(dartBoard, positions)
+for xyRatio in [1, 2, 4]:
+    sigmas = np.logspace(-4, 1, num=50)
+    scaledSigmas = getScaledSigmas(sigmas)
+    positions = np.array([list(getBestPosition(getScoreGrid(sigma, sigma*xyRatio, dartBoard))) + [scaledSigma] for (sigma, scaledSigma) in zip(sigmas, scaledSigmas)])
+    plotPosition(dartBoard, positions, filename="position{}.png".format(xyRatio))
+    plt.clf()
 
 sigmas = [0.001, 0.1, 5.0, 10.0, 15.0, 20.0, 30.0, 60.0, 120.0]
 scaledSigmas = getScaledSigmas(sigmas)
