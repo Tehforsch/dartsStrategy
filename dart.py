@@ -53,8 +53,8 @@ def getDartBoard():
     return s(xv, yv)
 
 def getScoreGrid(xSpread, ySpread, dartBoard):
-    gauss = multivariate_normal(mean=(0, 0), cov=np.array([[xSpread, 0],
-                                                           [0, ySpread]]))
+    gauss = multivariate_normal(mean=(0, 0), cov=np.array([[xSpread ** 2, 0],
+                                                           [0, ySpread ** 2]]))
     xx, yy = getLinGrid()
     xxyy = np.c_[xx.ravel(), yy.ravel()]
     gaussianGrid = gauss.pdf(xxyy).reshape((RESOLUTION, RESOLUTION))
