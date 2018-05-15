@@ -57,7 +57,8 @@ def getDartBoard():
 
 
 def getScoreGrid(xSpread, ySpread, dartBoard):
-    gauss = multivariate_normal(mean=(0, 0), cov=np.array([[xSpread, 0], [0, ySpread]]))
+    gauss = multivariate_normal(mean=(0, 0), cov=np.array([[xSpread ** 2.0, 0],
+                                                           [0, ySpread ** 2.0]]))
     xx, yy = getLinGrid()
     xxyy = np.c_[xx.ravel(), yy.ravel()]
     gaussianGrid = gauss.pdf(xxyy).reshape((RESOLUTION, RESOLUTION))
@@ -66,9 +67,8 @@ def getScoreGrid(xSpread, ySpread, dartBoard):
     return convolve(gaussianGrid, dartBoard)
 
 
-def getAvPoints(xSpread, ySpread, dartBoard):
-    g = getScoreGrid(xSpread, ySpread, dartBoard)
-    return np.amax(g)
+def getAvPoints(scoreGrid):
+    return np.amax(scoreGrid)
 
 
 def plotHeatmap(data, filename=None):
@@ -79,18 +79,21 @@ def plotHeatmap(data, filename=None):
         plt.savefig(filename, dpi=300)
 
 
-dartBoard = getDartBoard()
-
-plotHeatmap(dartBoard, "dartBoard.png")
-for x in [0.00001, 0.1, 0.2, 0.3]:
-    print(getAvPoints(x, x, dartBoard))
-
-# plotHeatmap(getScoreGrid(0.01, 0.01, dartBoard), "17mm.png")
-# plotHeatmap(getScoreGrid(0.05, 0.05, dartBoard), "40mm.png")
-
-
 def movie():
     for x in range(1, 300):
         spread = 0.00001*x
         gauss = getScoreGrid(spread, spread, dartBoard)
         plotHeatmap(gauss, "movie/{:04d}.png".format(x))
+
+
+dartBoard = getDartBoard()
+
+for sigma in [0.1, 5.0, 10.0, 15.0, 20.0, 30.0, 60.0, 120.0]:
+    sigmaScaled = sigma / totalRadius
+
+    scoreGrid = getScoreGrid(sigmaScaled, sigmaScaled, dartBoard)
+
+    avgScore = getAvPoints(scoreGrid)
+    print("Average score at sigma = {:3.0f} mm: {:.0f}".format(sigma, avgScore))
+
+    plotHeatmap(scoreGrid, "board_{:03.0f}.png".format(sigma))
