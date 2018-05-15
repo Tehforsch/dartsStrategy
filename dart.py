@@ -4,18 +4,23 @@ import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.signal import convolve
 
-# Double bull 0  - 12,7  mm
-# Bull        ...- 31.8  mm
-# Single 1    ...- 99.0  mm
+# Radii on the board
+#
+# (see: https://upload.wikimedia.org/wikipedia/commons/0/00/Dartboard_Abmessungen.svg)
+#
+# Double bull 0  -  6.35 mm
+# Bull        ...-  15.9 mm
+# Single 1    ...-  99.0 mm
 # Double      ...- 107.0 mm
 # Single 2    ...- 162.0 mm
 # Triple      ...- 170.0 mm
-regions = [0, 12.7, 31.8, 99.0, 107.0, 162.0, 170.0]
+regions = [0, 6.35, 15.9, 99.0, 107.0, 162.0, 170.0]
 totalRadius = max(regions)
 regions = [x / totalRadius for x in regions]
 
 RESOLUTION = 1000
-DONTSAVE = False
+SAVE = True
+
 
 def score(x, y):
     r = np.sqrt(x**2 + y**2)
@@ -39,14 +44,17 @@ def score(x, y):
     assert phiIndex >= 0
     return order[phiIndex] * multiplier
 
+
 def getLinGrid():
     xs = np.linspace(-1, 1, RESOLUTION)
     return np.meshgrid(xs, xs)
+
 
 def getDartBoard():
     xv, yv = getLinGrid()
     s = np.vectorize(score)
     return s(xv, yv)
+
 
 def getScoreGrid(xSpread, ySpread, dartBoard):
     gauss = multivariate_normal(mean=(0, 0), cov=np.array([[xSpread, 0], [0, ySpread]]))
@@ -57,16 +65,19 @@ def getScoreGrid(xSpread, ySpread, dartBoard):
     # gaussianGrid[RESOLUTION/2,RESOLUTION/2] = 1
     return convolve(gaussianGrid, dartBoard)
 
+
 def getAvPoints(xSpread, ySpread, dartBoard):
     g = getScoreGrid(xSpread, ySpread, dartBoard)
     return np.amax(g)
 
+
 def plotHeatmap(data, filename=None):
     plt.imshow(data, cmap='hot', interpolation='nearest')
-    if filename is None or DONTSAVE:
+    if filename is None or not SAVE:
         plt.show()
     else:
         plt.savefig(filename, dpi=300)
+
 
 dartBoard = getDartBoard()
 
@@ -76,6 +87,7 @@ for x in [0.00001, 0.1, 0.2, 0.3]:
 
 # plotHeatmap(getScoreGrid(0.01, 0.01, dartBoard), "17mm.png")
 # plotHeatmap(getScoreGrid(0.05, 0.05, dartBoard), "40mm.png")
+
 
 def movie():
     for x in range(1, 300):
